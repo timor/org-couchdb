@@ -22,5 +22,26 @@
 
 ;;; Code:
 
+
+;;; Helper: determine property by either getting it from subtree, buffer or prompt
+
+(defun org-couchdb-get-property (pom name &optional postprocessor)
+  "Determine org property NAME at POM, ask user if not found.
+Apply POSTPROCESSOR on the read value."
+  (let ((p (or (org-entry-get pom name t)
+	       (completing-read (format "Provide value for Property '%s': " name) ()))))
+    (if postprocessor
+	(funcall postprocessor p)
+      p)))
+
+(defun org-couchdb-server ()
+  "Determine the server and port to use")
+
+(defun org-couchdb-port ())
+
+(defun org-couchdb-post-subtree ())
+
+
+
 (provide 'org-couchdb)
 ;;; org-couchdb.el ends here
