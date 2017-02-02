@@ -34,13 +34,17 @@ Apply POSTPROCESSOR on the read value."
 	(funcall postprocessor p)
       p)))
 
-(defun org-couchdb-server ()
-  "Determine the server and port to use")
+(defun org-couchdb-server (pom)
+  "Determine the server to use."
+  (org-couchdb-get-property pom "couchdb-server"))
 
-(defun org-couchdb-port ())
+(defun org-couchdb-port (pom)
+  "Determine the port to use."
+  (org-couchdb-get-property pom "couchdb-port" (lambda (s) (string-to-int s))))
 
-(defun org-couchdb-post-subtree ())
-
+(defun org-couchdb-save-entry ()
+  "Based on the id property, post the current entry to couchdb.
+  All Properties will be passed as json fields.  The body of the entry will be put into the special field 'org-entry-body'.")
 
 
 (provide 'org-couchdb)
