@@ -22,9 +22,9 @@
 
 ;;; Code:
 
+(require 'couchdb)
 
 ;;; Helper: determine property by either getting it from subtree, buffer or prompt
-
 (defun org-couchdb-get-property (pom name &optional postprocessor)
   "Determine org property NAME at POM, ask user if not found.
 Apply POSTPROCESSOR on the read value."
@@ -42,10 +42,26 @@ Apply POSTPROCESSOR on the read value."
   "Determine the port to use."
   (org-couchdb-get-property pom "couchdb-port" (lambda (s) (string-to-int s))))
 
-(defun org-couchdb-save-entry ()
-  "Based on the id property, post the current entry to couchdb.
-  All Properties will be passed as json fields.  The body of the entry will be put into the special field 'org-entry-body'.")
+(defun org-couchdb-org-to-json (pom e)
+  "Translate an org item to a json document".
+  ())
 
+(defun org-couchdb-save-entry ()
+  "Based on the :COUCHDB_ID: property, post the current entry to couchdb.
+  All Properties will be passed as json fields, except for the
+  ones where translations have been defined.  The body of the
+  entry will be put into the special field 'org-entry-body'.  If
+  there is no :COUCHDB_ID:, one will be created, and the property
+  will be updated accordingly."
+  (let* ((pom (point))
+	 (e (org-element-at-point))
+	 (priority-given (org-element-property :priority e))
+	 (id (org-element-property :COUCHDB_ID))
+	 (fields (org-couchdb-org-to-json pom e)))
+    ))
+
+(defun org-couchdb-update-entry ()
+  "If entry has valid id, query that from the server and update the entry.")
 
 (provide 'org-couchdb)
 ;;; org-couchdb.el ends here
