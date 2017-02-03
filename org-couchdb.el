@@ -43,8 +43,11 @@ Apply POSTPROCESSOR on the read value."
   (org-couchdb-get-property pom "couchdb-port" (lambda (s) (string-to-int s))))
 
 (defun org-couchdb-org-to-json (pom e)
-  "Translate an org item to a json document".
-  ())
+  "Translate an org item to a json document."
+  (let ((priority-given (org-element-property :priority e))
+	(properties (org-entry-properties pom)))
+    ;; return plist
+    (mapcar (lambda (p) ) properties)))
 
 (defun org-couchdb-save-entry ()
   "Based on the :COUCHDB_ID: property, post the current entry to couchdb.
@@ -55,8 +58,7 @@ Apply POSTPROCESSOR on the read value."
   will be updated accordingly."
   (let* ((pom (point))
 	 (e (org-element-at-point))
-	 (priority-given (org-element-property :priority e))
-	 (id (org-element-property :COUCHDB_ID))
+	 (id (org-element-property :COUCHDB_ID e))
 	 (fields (org-couchdb-org-to-json pom e)))
     ))
 
