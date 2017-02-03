@@ -8,11 +8,31 @@ Provides a means to:
 - provide mapping between org entries (not files) and couchdb documents
 - an entry with an id (TBD: choose if org-mode id is enough, or
   special couchdb id is needed) corresponds to a couch db document
+  - current choice: couchdb_id
 - couchdb fields are generally treated as item properties
 - prime way to identify items is via tags
 - flexible configuration by just providing properties, using org's
   property inheritance
 - structure of org files is independent of couchdb documents, as the
   latter are only stored flat on the server
-- directives allow to generate org tree structures based on tag
-  queries
+- query results are tagged items, but a special tag->tree
+  transformation allows to view and store items in a tree
+
+* Conventions
+- type mappings between json values and org-mode properties:
+  - per default: a property value will be quoted json
+  - if you define field types, conversion to and from json values to
+    property values will be performend on synchronisations
+- this ensures that in general any document can be rendered and
+  edited, but also typical and special use-cases are supported
+
+* Issues
+- currently, interface passes pom around, may want to change that to
+  (point) if usage is always the same to avoid noise
+- how should taq handling be performed?
+  1. only allow org-compatible tags in the database
+  2. create a mapping from org tags to couchdb tags
+     1. implicit mapping: define some clever rules (problem: one-way ticket)
+     2. explicit mapping: have tag descriptions and translations
+        stored in the database in a special document <- current favourite
+
