@@ -37,13 +37,6 @@ Provides a means to:
   latter are only stored flat on the server
 - query results are tagged items, but a special tag->tree
   transformation allows to view and store items in a tree
-** Conventions
-- type mappings between json values and org-mode properties:
-  - per default: a property value will be quoted json
-  - if you define field types, conversion to and from json values to
-    property values will be performend on synchronisations
-- this ensures that in general any document can be rendered and
-  edited, but also typical and special use-cases are supported
 ** Issues
 - currently, interface passes pom around, may want to change that to
   (point) if usage is always the same to avoid noise
@@ -59,8 +52,15 @@ Provides a means to:
 
 #+BEGIN_SRC emacs-lisp
 (require 'couchdb)
+(require 'json)
+#+END_SRC
 
-;;; Helper: determine property by either getting it from subtree, buffer or prompt
+** Helper
+
+Determine property by either getting it from subtree, buffer, or
+prompt user.
+
+#+BEGIN_SRC emacs-lisp
 (defun org-couchdb-get-property (pom name &optional postprocessor)
   "Determine org property NAME at POM, ask user if not found.
 Apply POSTPROCESSOR on the read value."
@@ -69,7 +69,13 @@ Apply POSTPROCESSOR on the read value."
     (if postprocessor
 	(funcall postprocessor p)
       p)))
+#+END_SRC
 
+**  Configuration Properties
+
+These configure the couchdb connection.  Note that no customization is
+used, to specify the values, insert =#+PROPERTY: ...= lines.
+#+BEGIN_SRC emacs-lisp
 (defun org-couchdb-server (pom)
   "Determine the server to use."
   (org-couchdb-get-property pom "couchdb-server"))
@@ -78,30 +84,125 @@ Apply POSTPROCESSOR on the read value."
   "Determine the port to use."
   (org-couchdb-get-property pom "couchdb-port" (lambda (s) (string-to-int s))))
 
-;;; Translati
+(defun org-couchdb-db (pom)
+  "Determine the database to use."
+  (org-couchdb-get-property pom "couchdb-db"))
+#+END_SRC
 
-(defun org-couchdb-org-to-json (pom e)
-  "Translate an org item to a json document."
+** Translating org to json
+- type mappings between json values and org-mode properties:
+  - per default: a property value will be quoted json
+  - if you define field types, conversion to and from json values to
+    property values will be performed on synchronisations
+- this ensures that in general any document can be rendered and
+  edited, but also typical and special use-cases are supported
+
+(WIP)
+Translation Process: Looks for property-specific translation definitions. If
+none are found, just simply interpret property as quoted string.
+Special properties are handled individually.  These include:
+- org body
+- deadline
+- todo state
+
+Note that couchdb configuration properties are ignored.
+#+BEGIN_SRC emacs-lisp
+;; BUG? "CATEGORY" is not in org-special-properties...
+(defvar org-couchdb-ignored-properties
+  '("CATEGORY" "COUCHDB-SERVER" "COUCHDB-PORT" "COUCHDB-DB" "COUCHDB-ID" "COUCHDB-REV"))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(defun org-couchdb-item-to-json (pom e)
+  "Translate an org item to a json document.  Point must be at headline."
   (let ((priority-given (org-element-property :priority e))
-	(properties (org-entry-properties pom)))
+	(user-properties (org-entry-properties pom 'standard))
+	(special-properties (org-entry-properties pom 'special))
+	(field-types (org-couchdb-determine-field-types pom))
+	(json-fields ()))
     ;; return plist
-    (mapcar (lambda (p) ) properties)))
+    (dolist (p user-properties)
+      (if (not (member (car p) org-couchdb-ignored-properties))
+	  (push (org-couchdb-property-to-json p field-types) json-fields)))
+    json-fields))
+#+END_SRC
 
+*** Property translations
+By default, all fields are assumed to be quoted strings.
+#+BEGIN_SRC emacs-lisp
+(defvar org-couchdb-property-translations
+  '((string (lambda (x) (let ((val (read-from-whole-string x)))
+			  (when (not (stringp val))
+			    (error "does not evaluate to a string: %s" val))
+			  val))
+	    (lambda (x) (concat "\"" x "\""))))
+    "List of (TYPE ORG>JSON JSON>ORG) mappings.")
+
+(defun org-couchdb-property-to-json (prop field-types)
+  "Convert property PROP to plist ready for JSON-encoding, using supplied list of field type definitions FIELD-TYPES."
+  (let* ((key (car prop))
+	 (org-val (cdr prop))
+	 (type (or (cdr (assoc key field-types)) 'string))
+	 (translator (or (first (cdr (assoc type org-couchdb-property-translations)))
+			 (error "no translation defined for field type %s" type)))
+	 (json-val (funcall translator org-val)))
+    (cons key json-val)))
+
+(defun org-couchdb-determine-field-types (pom)
+  "Determine the list of field type mappings for the entry at POM.  Point must be at headline"
+  nil)
+#+END_SRC
+
+** Database Commands
+
+Saving an entry:
+- look for =:couchdb-id:= property
+  - if found, translate and update server document
+  - if not found, create new server document, save new id
+
+#+BEGIN_SRC emacs-lisp
 (defun org-couchdb-save-entry ()
-  "Based on the :COUCHDB_ID: property, post the current entry to couchdb.
+  "Based on the :couchdb-id: property, post the current entry to couchdb.
   All Properties will be passed as json fields, except for the
   ones where translations have been defined.  The body of the
   entry will be put into the special field 'org-entry-body'.  If
-  there is no :COUCHDB_ID:, one will be created, and the property
+  there is no :couchdb-id:, one will be created, and the property
   will be updated accordingly."
-  (let* ((pom (point))
-	 (e (org-element-at-point))
-	 (id (org-element-property :COUCHDB_ID e))
-	 (fields (org-couchdb-org-to-json pom e)))
-    ))
+  (interactive)
+  (save-excursion
+    (org-back-to-heading)
+    (let* ((pom (point))
+	   (e (org-element-at-point))
+	   (id (org-element-property :COUCHDB-ID e))
+	   (rev (org-element-property :COUCHDB-REV e))
+	   (body)
+	   (fields (org-couchdb-item-to-json pom e))
+	   (doc (if rev
+		    (acons "_rev" rev fields)
+		  fields))
+	   (couchdb-host (org-couchdb-server pom))
+	   (couchdb-port (org-couchdb-port pom))
+	   (response (couchdb-doc-save (org-couchdb-db pom)
+				       doc id))
+	   (new-id (cdr (assoc 'id response)))
+	   (new-rev (cdr (assoc 'rev response))))
+      (unless (eq (cdr (assoc 'ok response)) t)
+	(error "CouchDB request error, Reason: %s" (cdr (assoc 'reason response))))
+      (when (and id (not (equal id new-id)))
+	(error "Server document ID differs from previously known ID"))
+      (org-entry-put pom "COUCHDB-ID" new-id)
+      (org-entry-put pom "COUCHDB-REV" new-rev))))
+#+END_SRC
 
+Updating existing Entry.
+#+BEGIN_SRC emacs-lisp
 (defun org-couchdb-update-entry ()
   "If entry has valid id, query that from the server and update the entry.")
+
+#+END_SRC
+
+** Footer
+#+BEGIN_SRC emacs-lisp
 
 (provide 'org-couchdb)
 ;;; org-couchdb.el ends here
