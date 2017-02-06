@@ -55,7 +55,17 @@ Provides a means to:
 (require 'json)
 #+END_SRC
 
-** Helper
+** Helpers
+
+Get the content of an entry, without the property drawer, as raw text
+(defun org-couchdb-get-body (e)
+  "Return entry body as raw text.  Needs parse element E."
+  (let ((obuf (current-buffer)))
+   (with-temp-buffer
+     (insert-buffer-substring obuf
+			      (org-element-property :contents-begin e)
+			      (org-element-property :contents-end e))
+     (buffer-substring-no-properties (point-min) (point-max)))))
 
 Determine property by either getting it from subtree, buffer, or
 prompt user.
