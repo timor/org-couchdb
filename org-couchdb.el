@@ -124,7 +124,7 @@ Apply POSTPROCESSOR on the read value."
 ;; - deadline
 ;; - todo state
 
-;; Note that couchdb configuration properties are ignored.
+;; Note that couchdb configuration properties are ignored when writing to the database
 ;; #+BEGIN_SRC emacs-lisp
 ;; BUG? "CATEGORY" is not in org-special-properties...
 (defvar org-couchdb-ignored-properties
