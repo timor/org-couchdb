@@ -137,7 +137,8 @@ Apply POSTPROCESSOR on the read value."
 ;; #+BEGIN_SRC emacs-lisp
 ;; BUG? "CATEGORY" is not in org-special-properties...
 (defvar org-couchdb-ignored-properties
-  '("CATEGORY" "COUCHDB-SERVER" "COUCHDB-PORT" "COUCHDB-DB" "COUCHDB-ID" "COUCHDB-REV"))
+  '("CATEGORY" "COUCHDB-SERVER" "COUCHDB-PORT" "COUCHDB-DB" "COUCHDB-ID" "COUCHDB-REV"
+    "COUCHDB-ORG-TITLE-FIELD" "COUCHDB-ORG-BODY-FIELD" "COUCHDB-ORG-DEADLINE-FIELD"))
 ;; #+END_SRC
 
 ;; #+BEGIN_SRC emacs-lisp
@@ -207,14 +208,14 @@ Apply POSTPROCESSOR on the read value."
 ;; In the future, it may be better to explicitely "cut out" the inner
 ;; linked items, save them in a relation and provide explicit support for
 ;; "re-instantiating" them when the outer item is updated.
-;; **** property-names
+;; **** Property Names
 ;; Since property names are converted to field names, and some special
 ;; property names like "ORG-BODY" are used, collisions are possible
 ;; there.
 
 ;; This can be fixed by namespacing or scoping, but then the document on
 ;; the server may become less pleasant to work with.
-
+;; ***** Alternative Approach: scope out org properties
 ;; The most likely approach involves creating a special =org= field to
 ;; separate internal properties from user-defined ones.
 
@@ -237,6 +238,12 @@ Apply POSTPROCESSOR on the read value."
 ;;       "deadline" : "<org-deadline>" }
 ;; }
 ;; #+END_SRC
+;; ***** Alternative Approach: mapping between fields and special items
+;; In this approach, the user can easily configure which fields are to be
+;; interpreted as special fields.  E.g. a property couchdb-org-body-field
+;; would be set to "content" per default, but overridable with an org
+;; property itself (TBD: define wether that configuration is stored
+;; alongside the document, possibly in the above configuration
 
 ;; ** Database Commands
 
@@ -264,7 +271,10 @@ Apply POSTPROCESSOR on the read value."
 	   (id (org-element-property :COUCHDB-ID e))
 	   (rev (org-element-property :COUCHDB-REV e))
 	   (body (org-couchdb-get-body e))
-	   (fields (acons "ORG-BODY" body (org-couchdb-item-to-json pom e)))
+	   (title (org-element-property :title e))
+	   (generated-fields (list (cons (org-couchdb-get-property pom "couchdb-org-body-field") body)
+				   (cons (org-couchdb-get-property pom "couchdb-org-title-field") title)))
+	   (fields (append generated-fields (org-couchdb-item-to-json pom e)))
 	   (doc (if rev
 		    (acons "_rev" rev fields)
 		  fields))
