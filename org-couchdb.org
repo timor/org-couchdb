@@ -79,18 +79,27 @@ Get the content of an entry, without the property drawer, as raw text
 Determine property by either getting it from subtree, buffer, or
 prompt user.
 
+** Configuration Properties
+All Configuration is done using properties, in addition to the
+variable =org-couchdb-property-defaults=.
+
 #+BEGIN_SRC emacs-lisp
+(defvar org-couchdb-property-defaults
+  '(("couchdb-port" . "5984")
+    ("couchdb-org-body-field" . "content")
+    ("couchdb-org-title-field" . "title")
+    ("couchdb-org-deadline-field" . "deadline")))
+
 (defun org-couchdb-get-property (pom name &optional postprocessor)
   "Determine org property NAME at POM, ask user if not found.
 Apply POSTPROCESSOR on the read value."
   (let ((p (or (org-entry-get pom name t)
-	       (completing-read (format "Provide value for Property '%s': " name) ()))))
+	       (cdr (assoc name org-couchdb-property-defaults))
+	       (completing-read (format "Provide value for Property '%s': " name)))))
     (if postprocessor
 	(funcall postprocessor p)
       p)))
 #+END_SRC
-
-**  Configuration Properties
 
 These configure the couchdb connection.  Note that no customization is
 used, to specify the values, insert =#+PROPERTY: ...= lines.
