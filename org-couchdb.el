@@ -108,7 +108,7 @@ Apply POSTPROCESSOR on the read value."
 ;;     property values will be performed on synchronisations
 ;; - this ensures that in general any document can be rendered and
 ;;   edited, but also typical and special use-cases are supported
-
+;; *** Headline/Entry Translations
 ;; (WIP)
 ;; Translation Process: Looks for property-specific translation definitions. If
 ;; none are found, just simply interpret property as quoted string.
@@ -138,6 +138,20 @@ Apply POSTPROCESSOR on the read value."
 	  (push (org-couchdb-property-to-json p field-types) json-fields)))
     json-fields))
 ;; #+END_SRC
+;; **** Strategy Notes
+;; ***** Org Body
+;; At the moment, entries are copied to a temporary buffer in order to
+;; extract the body.  The Property drawer is removed by hand.
+
+;; An Alternative would involve parsing the whole buffer with
+;; org-element, and then performing all extraction operations on the
+;; already parsed tree.  This should be faster for full-buffer
+;; synchronizations, but may incur unneccesary parsing overhead.
+;; ***** Updating unchanged Items
+;; At the moment, when an item is submitted to CouchDB, all properties
+;; are updated, regardless of change status.  Introducing checksums could
+;; be introduced to only synchronize when necessary.  This must be
+;; weighed against the overhead of actually checking for up-to-date-ness.
 
 ;; *** Property translations
 ;; By default, all fields are assumed to be quoted strings.
