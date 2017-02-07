@@ -138,20 +138,6 @@ Note that couchdb configuration properties are ignored.
 	  (push (org-couchdb-property-to-json p field-types) json-fields)))
     json-fields))
 #+END_SRC
-**** Strategy Notes
-***** Org Body
-At the moment, entries are copied to a temporary buffer in order to
-extract the body.  The Property drawer is removed by hand.
-
-An Alternative would involve parsing the whole buffer with
-org-element, and then performing all extraction operations on the
-already parsed tree.  This should be faster for full-buffer
-synchronizations, but may incur unneccesary parsing overhead.
-***** Updating unchanged Items
-At the moment, when an item is submitted to CouchDB, all properties
-are updated, regardless of change status.  Introducing checksums could
-be introduced to only synchronize when necessary.  This must be
-weighed against the overhead of actually checking for up-to-date-ness.
 
 *** Property translations
 By default, all fields are assumed to be quoted strings.
@@ -178,7 +164,33 @@ By default, all fields are assumed to be quoted strings.
   "Determine the list of field type mappings for the entry at POM.  Point must be at headline"
   nil)
 #+END_SRC
+*** Strategy Notes
+**** Org Body
+At the moment, entries are copied to a temporary buffer in order to
+extract the body.  The Property drawer is removed by hand.
 
+An Alternative would involve parsing the whole buffer with
+org-element, and then performing all extraction operations on the
+already parsed tree.  This should be faster for full-buffer
+synchronizations, but may incur unneccesary parsing overhead.
+**** Updating unchanged Items
+At the moment, when an item is submitted to CouchDB, all properties
+are updated, regardless of change status.  Introducing checksums could
+be introduced to only synchronize when necessary.  This must be
+weighed against the overhead of actually checking for up-to-date-ness.
+**** Nested Items
+There is no special handling of nested items.  For an outer item, the
+whole subtree is saved as org-body.  This is true for the inner item,
+too.  Thus, fetching an outer item with a database link will
+"instantiate" any inner items, that can have their own database
+links.
+
+Care must be taken with the order of update operations, so that the
+whole structure is synchronized correctly.
+
+In the future, it may be better to explicitely "cut out" the inner
+linked items, save them in a relation and provide explicit support for
+"re-instantiating" them when the outer item is updated.
 ** Database Commands
 
 Saving an entry:
