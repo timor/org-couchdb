@@ -66,7 +66,14 @@
      (insert-buffer-substring obuf
 			      (org-element-property :contents-begin e)
 			      (org-element-property :contents-end e))
-     (buffer-substring-no-properties (point-min) (point-max)))))
+     (goto-char (point-min))
+     (let ((e (org-element-at-point)))
+       ;; unfortunately, the element is parsed as 'drawer, not as
+       ;; 'property-drawer when copied to buffer
+       (when (and (eq (org-element-type e) 'drawer)
+		  (string-equal (org-element-property :drawer-name e) "PROPERTIES"))
+	 (goto-char (org-element-property :end e))))
+     (buffer-substring-no-properties (point) (point-max)))))
 ;; #+END_SRC
 
 ;; Determine property by either getting it from subtree, buffer, or
