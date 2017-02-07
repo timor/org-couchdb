@@ -255,6 +255,17 @@ Updateing an entry:
 - loog for =:couchdb-id:= property
   - if found, update entry from server document
 
+Interactive commands all move point to the current entry.
+
+#+BEGIN_SRC emacs-lisp
+(defmacro org-couchdb-with-entry (point-var &rest body)
+  "Jump to beginning of entry for BODY, with POINT-VAR bound to the current point."
+  `(save-excursion
+     (org-back-to-heading)
+     (let ((,point-var (point)))
+       ,@body)))
+#+END_SRC
+
 #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-save-entry ()
   "Based on the :couchdb-id: property, post the current entry to couchdb.
@@ -264,10 +275,8 @@ Updateing an entry:
   there is no :couchdb-id:, one will be created, and the property
   will be updated accordingly."
   (interactive)
-  (save-excursion
-    (org-back-to-heading)
-    (let* ((pom (point))
-	   (e (org-element-at-point))
+  (org-couchdb-with-entry pom
+    (let* ((e (org-element-at-point))
 	   (id (org-element-property :COUCHDB-ID e))
 	   (rev (org-element-property :COUCHDB-REV e))
 	   (body (org-couchdb-get-body e))
