@@ -174,7 +174,7 @@ Apply POSTPROCESSOR on the read value."
 	 (translator (or (first (cdr (assoc type org-couchdb-property-translations)))
 			 (error "no translation defined for field type %s" type)))
 	 (json-val (funcall translator org-val)))
-    (cons key json-val)))
+    (cons (downcase key) json-val)))
 
 (defun org-couchdb-determine-field-types (pom)
   "Determine the list of field type mappings for the entry at POM.  Point must be at headline"
