@@ -254,8 +254,8 @@ Updateing an entry:
 	   (e (org-element-at-point))
 	   (id (org-element-property :COUCHDB-ID e))
 	   (rev (org-element-property :COUCHDB-REV e))
-	   (body)
-	   (fields (org-couchdb-item-to-json pom e))
+	   (body (org-couchdb-get-body e))
+	   (fields (acons "ORG-BODY" body (org-couchdb-item-to-json pom e)))
 	   (doc (if rev
 		    (acons "_rev" rev fields)
 		  fields))
