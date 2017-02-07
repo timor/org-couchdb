@@ -304,7 +304,10 @@ Apply POSTPROCESSOR on the read value."
 ;; Updating existing Entry.
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-update-entry ()
-  "If entry has valid id, query that from the server and update the entry.")
+  "If entry has valid id, query that from the server and update the entry."
+  (interactive)
+  (org-couchdb-with-entry pom
+			  ))
 
 ;; #+END_SRC
 
