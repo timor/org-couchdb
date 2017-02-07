@@ -198,12 +198,46 @@ whole structure is synchronized correctly.
 In the future, it may be better to explicitely "cut out" the inner
 linked items, save them in a relation and provide explicit support for
 "re-instantiating" them when the outer item is updated.
+**** property-names
+Since property names are converted to field names, and some special
+property names like "ORG-BODY" are used, collisions are possible
+there.
+
+This can be fixed by namespacing or scoping, but then the document on
+the server may become less pleasant to work with.
+
+The most likely approach involves creating a special =org= field to
+separate internal properties from user-defined ones.
+
+Current Layout:
+#+BEGIN_SRC json
+{ "_rev" : "1-deadbeef",
+  "_id" : "checkmatefool",
+  "org-body" : "the body stuff",
+  "deadline": "deadline",
+  "org-deadline" : "<org-deadline>" }
+#+END_SRC
+
+Proposed Layout:
+#+BEGIN_SRC json
+{ "_rev" : "1-deadbeef",
+  "_id" : "checkmatefool",
+  "deadline": "deadline",
+  "org" : {
+      "body" : "the body stuff",
+      "deadline" : "<org-deadline>" }
+}
+#+END_SRC
+
 ** Database Commands
 
 Saving an entry:
 - look for =:couchdb-id:= property
   - if found, translate and update server document
   - if not found, create new server document, save new id
+Updateing an entry:
+- loog for =:couchdb-id:= property
+  - if found, update entry from server document
 
 #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-save-entry ()
