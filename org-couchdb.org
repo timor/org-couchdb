@@ -58,6 +58,7 @@ Provides a means to:
 ** Helpers
 
 Get the content of an entry, without the property drawer, as raw text
+#+BEGIN_SRC emacs-lisp
 (defun org-couchdb-get-body (e)
   "Return entry body as raw text.  Needs parse element E."
   (let ((obuf (current-buffer)))
@@ -66,6 +67,7 @@ Get the content of an entry, without the property drawer, as raw text
 			      (org-element-property :contents-begin e)
 			      (org-element-property :contents-end e))
      (buffer-substring-no-properties (point-min) (point-max)))))
+#+END_SRC
 
 Determine property by either getting it from subtree, buffer, or
 prompt user.
