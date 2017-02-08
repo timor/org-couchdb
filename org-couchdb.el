@@ -257,6 +257,8 @@ Apply POSTPROCESSOR on the read value."
 
 ;; Interactive commands all move point to the current entry.
 
+;; TODO: factor out common code of store and fetch code.
+
 ;; #+BEGIN_SRC emacs-lisp
 (defmacro org-couchdb-with-entry (point-var &rest body)
   "Jump to beginning of entry for BODY, with POINT-VAR bound to the current point."
@@ -308,7 +310,19 @@ Apply POSTPROCESSOR on the read value."
   "If entry has valid id, query that from the server and update the entry."
   (interactive)
   (org-couchdb-with-entry pom
-			  ))
+    (let* ((e (org-element-at-point))
+	   (id (or (org-element-property :COUCHDB-ID e)
+		   (error "Item does not have COUCHDB-ID property, cannot fetch from server.")))
+	   (couchdb-host (org-couchdb-server pom))
+	   (couchdb-port (org-couchdb-port pom))
+	   (response (couchdb-doc-info (org-couchdb-db pom) id))
+	   (db-error (cdr (assoc 'error response)))
+	   (new-id (cdr (assoc '_id response)))
+	   (new-rev (cdr (assoc '_rev response))))
+      (when db-error
+	(error "CouchDB request error, Reason: %s" (cdr (assoc 'reason response))))
+      (when (and id (not (equal id new-id)))
+	(error "Server document ID differs from previously known ID")))))
 
 ;; #+END_SRC
 
