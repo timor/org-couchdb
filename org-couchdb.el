@@ -260,6 +260,7 @@ Apply POSTPROCESSOR on the read value."
 ;; #+BEGIN_SRC emacs-lisp
 (defmacro org-couchdb-with-entry (point-var &rest body)
   "Jump to beginning of entry for BODY, with POINT-VAR bound to the current point."
+  (declare (indent 1))
   `(save-excursion
      (org-back-to-heading)
      (let ((,point-var (point)))
