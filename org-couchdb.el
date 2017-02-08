@@ -21,7 +21,7 @@
 ;;; Commentary:
 
 ;; Provides a means to:
-;; - save org entries in couchdb
+;; - store org entries in couchdb
 ;; - edit couchdb entries with org modeTools for synchronizing org
 ;;   subtrees with couchdb.  Treats all entries as properties.
 ;; ** Idea
@@ -197,7 +197,7 @@ Apply POSTPROCESSOR on the read value."
 ;; weighed against the overhead of actually checking for up-to-date-ness.
 ;; **** Nested Items
 ;; There is no special handling of nested items.  For an outer item, the
-;; whole subtree is saved as org-body.  This is true for the inner item,
+;; whole subtree is stored as org-body.  This is true for the inner item,
 ;; too.  Thus, fetching an outer item with a database link will
 ;; "instantiate" any inner items, that can have their own database
 ;; links.
@@ -267,7 +267,7 @@ Apply POSTPROCESSOR on the read value."
 ;; #+END_SRC
 
 ;; #+BEGIN_SRC emacs-lisp
-(defun org-couchdb-save-entry ()
+(defun org-couchdb-store-entry ()
   "Based on the :couchdb-id: property, post the current entry to couchdb.
   All Properties will be passed as json fields, except for the
   ones where translations have been defined.  The body of the
@@ -303,7 +303,7 @@ Apply POSTPROCESSOR on the read value."
 
 ;; Updating existing Entry.
 ;; #+BEGIN_SRC emacs-lisp
-(defun org-couchdb-update-entry ()
+(defun org-couchdb-fetch-entry ()
   "If entry has valid id, query that from the server and update the entry."
   (interactive)
   (org-couchdb-with-entry pom
