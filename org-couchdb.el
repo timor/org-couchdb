@@ -149,7 +149,7 @@
 Apply POSTPROCESSOR on the read value."
   (let ((p (or (org-entry-get pom name t)
 	       (cdr (assoc name org-couchdb-property-defaults))
-	       (completing-read (format "Provide value for Property '%s': " name)))))
+	       (completing-read (format "Provide value for Property '%s': " name) nil))))
     (if postprocessor
 	(funcall postprocessor p)
       p)))
