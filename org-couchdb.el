@@ -13,11 +13,9 @@
 ;;   subtrees with couchdb.  Treats all entries as properties.
 ;; ** Idea
 ;; - provide mapping between org entries (not files) and couchdb documents
-;; - an entry with an id (TBD: choose if org-mode id is enough, or
-;;   special couchdb id is needed) corresponds to a couch db document
-;;   - current choice: couchdb_id
+;; - an entry with a coucdb id corresponds to a couch db document
 ;; - couchdb fields are generally treated as item properties
-;; - prime way to identify items is via tags
+;; - primary way to identify items is via tags
 ;; - flexible configuration by just providing properties, using org's
 ;;   property inheritance
 ;; - structure of org files is independent of couchdb documents, as the
@@ -58,6 +56,7 @@
 
 ;; This can be fixed by namespacing or scoping, but then the document on
 ;; the server may become less pleasant to work with.
+;; *** Special Properties
 ;; **** Alternative Approach: scope out org properties
 ;; The most likely approach involves creating a special =org= field to
 ;; separate internal properties from user-defined ones.
@@ -88,6 +87,7 @@
 ;; property itself (TBD: define wether that configuration is stored
 ;; alongside the document, possibly in the above configuration
 
+;; ** Issues
 ;; - currently, interface passes pom around, may want to change that to
 ;;   (point) if usage is always the same to avoid noise
 ;; - how should taq handling be performed?
@@ -95,8 +95,12 @@
 ;;   2. create a mapping from org tags to couchdb tags
 ;;      1. implicit mapping: define some clever rules (problem: one-way ticket)
 ;;      2. explicit mapping: have tag descriptions and translations
-;;         stored in the database in a special document <- current favourite
-;; ** Issues
+;;         stored in the database in a special document
+;;      3. interpret anything as literal json value per default but:
+;;         - provide way to choose properties for entry headline, body,
+;;           todo state, etc
+;;         - provide way to perform mapping to/from json values and emacs
+;;           lisp types for the properties
 ;;; Code:
 
 
@@ -167,6 +171,63 @@ Apply POSTPROCESSOR on the read value."
   (org-couchdb-get-property pom "couchdb-db"))
 ;; #+END_SRC
 
+;; *** Field Type mappings
+;;     :PROPERTIES:
+;;     :ID:       3cb99f22-42e1-44eb-a175-a4a592f2082f
+;;     :END:
+;; Per default, all fields (except for some special builtins like REV and
+;; ID) are treated as literal quoted json properties.
+
+;; This can be overridden by providing mappings in the org property
+;; =couchdb-field-type=, like this:
+
+;; #+BEGIN_EXAMPLE org
+;; ,#+PROPERTY: couchdb-field-type foo string
+;; ,#+PROPERTY: couchdb-field-type+ bar number
+;; ,#+PROPERTY: couchdb-field-type+ prefix_.* string
+;; #+END_EXAMPLE
+
+;; This uses org mode's facility of adding values to properties.  Each
+;; entry is of the form
+;; #+BEGIN_EXAMPLE
+;; regexp type-symbol
+;; #+END_EXAMPLE
+
+;; Note that the first match is applied.  If more than one rule applies,
+;; the first takes precedence.
+
+;; Example:
+;; Withouth any mappings, the following json
+;; #+BEGIN_EXAMPLE json
+;; { "foo" : "bar" }
+;; #+END_EXAMPLE
+
+;; translates to the property drawer:
+;; #+BEGIN_EXAMPLE org
+;; :PROPERTIES:
+;; :foo: "bar"
+;; :END:
+;; #+END_EXAMPLE
+
+;; Defining the following beforehand
+;; #+BEGIN_EXAMPLE org
+;; ,#+PROPERTY: foo string
+;; #+END_EXAMPLE
+
+;; will cause the property to be written and read like this:
+;; #+BEGIN_EXAMPLE org
+;; :PROPERTIES:
+;; :foo: bar
+;; :END:
+;; #+END_EXAMPLE
+
+;; Note that is also possible to simply specify more than one mapping in
+;; a =#+PROPERTY:= directive:
+;; #+BEGIN_EXAMPLE org
+;; ,#+PROPERTY: couchdb-field-type foo string bar number prefix_.* string
+;; #+END_EXAMPLE
+
+;; As usual, these properties can be overridden on subtree or entry properties.
 ;; ** Translating org to json
 ;; - type mappings between json values and org-mode properties:
 ;;   - per default: a property value will be quoted json
@@ -207,7 +268,8 @@ Apply POSTPROCESSOR on the read value."
 ;; #+END_SRC
 
 ;; *** Property translations
-;; By default, all fields are assumed to be quoted strings.
+;; By default, all fields are assumed to be quoted strings representing
+;; json values.  See [[id:3cb99f22-42e1-44eb-a175-a4a592f2082f][Field Type mappings]] for details.
 ;; #+BEGIN_SRC emacs-lisp
 (defvar org-couchdb-property-translations
   '((string (lambda (x) (let ((val (read-from-whole-string x)))
@@ -232,15 +294,6 @@ Apply POSTPROCESSOR on the read value."
   nil)
 ;; #+END_SRC
 ;; ** Database Commands
-
-;; Saving an entry:
-;; - look for =:couchdb-id:= property
-;;   - if found, translate and update server document
-;;   - if not found, create new server document, save new id
-;; Updateing an entry:
-;; - loog for =:couchdb-id:= property
-;;   - if found, update entry from server document
-
 ;; Interactive commands all move point to the current entry.
 
 ;; TODO: factor out common code of store and fetch code.
@@ -254,6 +307,14 @@ Apply POSTPROCESSOR on the read value."
      (let ((,point-var (point)))
        ,@body)))
 ;; #+END_SRC
+
+;; *** Storing an entry
+;; - look for =:couchdb-id:= property
+;;   - if found, translate and update server document
+;;   - if not found, create new server document, save new id
+;; Updateing an entry:
+;; - look for =:couchdb-id:= property
+;;   - if found, update entry from server document
 
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-store-entry ()
@@ -290,7 +351,7 @@ Apply POSTPROCESSOR on the read value."
       (org-entry-put pom "COUCHDB-REV" new-rev))))
 ;; #+END_SRC
 
-;; Updating existing Entry.
+;; *** Updating an existing Entry
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-fetch-entry ()
   "If entry has valid id, query that from the server and update the entry."
@@ -311,6 +372,17 @@ Apply POSTPROCESSOR on the read value."
 	(error "Server document ID differs from previously known ID")))))
 
 ;; #+END_SRC
+;; *** Bulk Processing
+;;  This section deals with commands that process more than one item.
+;;  This section deals with commands that process more than one item.
+;;  Currently, following functionality is to be supported:
+;;  1. Checking in all items in a buffer based on a org-mode tag/property query
+;;  2. Updating all existing items in a buffer
+;;  3. Creating a new subtree containing several items based on a query to
+;;     CouchDB
+;; ****  Checking in several items
+;;  This uses org-map-entries with a query (which is prompted), to map the
+;;  check-in function over all items.
 
 ;;; Footer:
 ;; #+BEGIN_SRC emacs-lisp
