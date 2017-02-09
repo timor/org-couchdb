@@ -37,7 +37,70 @@
 ;;   latter are only stored flat on the server
 ;; - query results are tagged items, but a special tag->tree
 ;;   transformation allows to view and store items in a tree
-;; ** Issues
+;; ** Strategy Notes
+;; *** Org Body
+;; At the moment, entries are copied to a temporary buffer in order to
+;; extract the body.  The Property drawer is removed by hand.
+
+;; An Alternative would involve parsing the whole buffer with
+;; org-element, and then performing all extraction operations on the
+;; already parsed tree.  This should be faster for full-buffer
+;; synchronizations, but may incur unneccesary parsing overhead.
+;; *** Updating unchanged Items
+;; At the moment, when an item is submitted to CouchDB, all properties
+;; are updated, regardless of change status.  Introducing checksums could
+;; be introduced to only synchronize when necessary.  This must be
+;; weighed against the overhead of actually checking for up-to-date-ness.
+;; *** Nested Items
+;; There is no special handling of nested items.  For an outer item, the
+;; whole subtree is stored as org-body.  This is true for the inner item,
+;; too.  Thus, fetching an outer item with a database link will
+;; "instantiate" any inner items, that can have their own database
+;; links.
+
+;; Care must be taken with the order of update operations, so that the
+;; whole structure is synchronized correctly.
+
+;; In the future, it may be better to explicitely "cut out" the inner
+;; linked items, save them in a relation and provide explicit support for
+;; "re-instantiating" them when the outer item is updated.
+;; *** Property Names
+;; Since property names are converted to field names, and some special
+;; property names like "ORG-BODY" are used, collisions are possible
+;; there.
+
+;; This can be fixed by namespacing or scoping, but then the document on
+;; the server may become less pleasant to work with.
+;; **** Alternative Approach: scope out org properties
+;; The most likely approach involves creating a special =org= field to
+;; separate internal properties from user-defined ones.
+
+;; Current Layout:
+;; #+BEGIN_SRC json
+;; { "_rev" : "1-deadbeef",
+;;   "_id" : "checkmatefool",
+;;   "org-body" : "the body stuff",
+;;   "deadline": "deadline",
+;;   "org-deadline" : "<org-deadline>" }
+;; #+END_SRC
+
+;; Proposed Layout:
+;; #+BEGIN_SRC json
+;; { "_rev" : "1-deadbeef",
+;;   "_id" : "checkmatefool",
+;;   "deadline": "deadline",
+;;   "org" : {
+;;       "body" : "the body stuff",
+;;       "deadline" : "<org-deadline>" }
+;; }
+;; #+END_SRC
+;; **** Alternative Approach: mapping between fields and special items
+;; In this approach, the user can easily configure which fields are to be
+;; interpreted as special fields.  E.g. a property couchdb-org-body-field
+;; would be set to "content" per default, but overridable with an org
+;; property itself (TBD: define wether that configuration is stored
+;; alongside the document, possibly in the above configuration
+
 ;; - currently, interface passes pom around, may want to change that to
 ;;   (point) if usage is always the same to avoid noise
 ;; - how should taq handling be performed?
@@ -46,7 +109,7 @@
 ;;      1. implicit mapping: define some clever rules (problem: one-way ticket)
 ;;      2. explicit mapping: have tag descriptions and translations
 ;;         stored in the database in a special document <- current favourite
-
+;; ** Issues
 ;;; Code:
 
 
@@ -181,70 +244,6 @@ Apply POSTPROCESSOR on the read value."
   "Determine the list of field type mappings for the entry at POM.  Point must be at headline"
   nil)
 ;; #+END_SRC
-;; *** Strategy Notes
-;; **** Org Body
-;; At the moment, entries are copied to a temporary buffer in order to
-;; extract the body.  The Property drawer is removed by hand.
-
-;; An Alternative would involve parsing the whole buffer with
-;; org-element, and then performing all extraction operations on the
-;; already parsed tree.  This should be faster for full-buffer
-;; synchronizations, but may incur unneccesary parsing overhead.
-;; **** Updating unchanged Items
-;; At the moment, when an item is submitted to CouchDB, all properties
-;; are updated, regardless of change status.  Introducing checksums could
-;; be introduced to only synchronize when necessary.  This must be
-;; weighed against the overhead of actually checking for up-to-date-ness.
-;; **** Nested Items
-;; There is no special handling of nested items.  For an outer item, the
-;; whole subtree is stored as org-body.  This is true for the inner item,
-;; too.  Thus, fetching an outer item with a database link will
-;; "instantiate" any inner items, that can have their own database
-;; links.
-
-;; Care must be taken with the order of update operations, so that the
-;; whole structure is synchronized correctly.
-
-;; In the future, it may be better to explicitely "cut out" the inner
-;; linked items, save them in a relation and provide explicit support for
-;; "re-instantiating" them when the outer item is updated.
-;; **** Property Names
-;; Since property names are converted to field names, and some special
-;; property names like "ORG-BODY" are used, collisions are possible
-;; there.
-
-;; This can be fixed by namespacing or scoping, but then the document on
-;; the server may become less pleasant to work with.
-;; ***** Alternative Approach: scope out org properties
-;; The most likely approach involves creating a special =org= field to
-;; separate internal properties from user-defined ones.
-
-;; Current Layout:
-;; #+BEGIN_SRC json
-;; { "_rev" : "1-deadbeef",
-;;   "_id" : "checkmatefool",
-;;   "org-body" : "the body stuff",
-;;   "deadline": "deadline",
-;;   "org-deadline" : "<org-deadline>" }
-;; #+END_SRC
-
-;; Proposed Layout:
-;; #+BEGIN_SRC json
-;; { "_rev" : "1-deadbeef",
-;;   "_id" : "checkmatefool",
-;;   "deadline": "deadline",
-;;   "org" : {
-;;       "body" : "the body stuff",
-;;       "deadline" : "<org-deadline>" }
-;; }
-;; #+END_SRC
-;; ***** Alternative Approach: mapping between fields and special items
-;; In this approach, the user can easily configure which fields are to be
-;; interpreted as special fields.  E.g. a property couchdb-org-body-field
-;; would be set to "content" per default, but overridable with an org
-;; property itself (TBD: define wether that configuration is stored
-;; alongside the document, possibly in the above configuration
-
 ;; ** Database Commands
 
 ;; Saving an entry:
@@ -326,7 +325,7 @@ Apply POSTPROCESSOR on the read value."
 
 ;; #+END_SRC
 
-;; ** Footer
+;;; Footer:
 ;; #+BEGIN_SRC emacs-lisp
 
 (provide 'org-couchdb)
