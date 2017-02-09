@@ -115,6 +115,7 @@
 
 
 ;; #+BEGIN_SRC emacs-lisp
+(require 'org)
 (require 'couchdb)
 (require 'json)
 ;; #+END_SRC

@@ -115,6 +115,7 @@ alongside the document, possibly in the above configuration
 
 
 #+BEGIN_SRC emacs-lisp
+(require 'org)
 (require 'couchdb)
 (require 'json)
 #+END_SRC
