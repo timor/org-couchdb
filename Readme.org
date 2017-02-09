@@ -22,6 +22,16 @@ Provides a means to:
   latter are only stored flat on the server
 - query results are tagged items, but a special tag->tree
   transformation allows to view and store items in a tree
+** Setup
+All configuration is done via org-mode properties.  The minimum setup
+to get started is:
+#+BEGIN_EXAMPLE org
+,#+PROPERTY: couchdb-server <server-name-or-ip>
+,#+PROPERTY: couchdb-port <server-port>
+,#+PROPERTY: couchdb-db <database-name>
+#+END_EXAMPLE
+
+Note that currently the database must already exist on the server.
 ** Strategy Notes
 *** Org Body
 At the moment, entries are copied to a temporary buffer in order to
