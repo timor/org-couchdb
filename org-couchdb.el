@@ -334,7 +334,7 @@ Apply POSTPROCESSOR on the read value."
 ;; - look for =:couchdb-id:= property
 ;;   - if found, translate and update server document
 ;;   - if not found, create new server document, save new id
-;; Updateing an entry:
+;; Updating an entry:
 ;; - look for =:couchdb-id:= property
 ;;   - if found, update entry from server document
 
@@ -395,7 +395,6 @@ Apply POSTPROCESSOR on the read value."
 
 ;; #+END_SRC
 ;; *** Bulk Processing
-;;  This section deals with commands that process more than one item.
 ;;  This section deals with commands that process more than one item.
 ;;  Currently, following functionality is to be supported:
 ;;  1. Checking in all items in a buffer based on a org-mode tag/property query
