@@ -142,7 +142,8 @@
   '(("couchdb-port" . "5984")
     ("couchdb-org-body-field" . "content")
     ("couchdb-org-title-field" . "title")
-    ("couchdb-org-deadline-field" . "deadline")))
+    ("couchdb-org-deadline-field" . "deadline")
+    ("couchdb-field-type" . "")))
 
 (defun org-couchdb-get-property (pom name &optional postprocessor)
   "Determine org property NAME at POM, ask user if not found.
@@ -228,6 +229,20 @@ Apply POSTPROCESSOR on the read value."
 ;; #+END_EXAMPLE
 
 ;; As usual, these properties can be overridden on subtree or entry properties.
+
+;; TODO: the following should probably be optimized if it proves a bottleneck, since it does a lot of string matching for each(!) property
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-field-type (pom field)
+  "Try to determine any override for field type of FIELD at POM.  Return nil if no override was found."
+  (let ((tokens (split-string (org-couchdb-get-property pom "couchdb-field-type"))))
+    (unless (evenp (length tokens)) (error "Entries of `couchdb-field-type' must be <regex> <type-symbol> pairs"))
+    (loop for l = tokens then (cddr l)
+	  for (re type &rest) = l
+	  while l do
+	  (when (string-match re field)
+	    (return (intern type))))))
+;; #+END_SRC
+
 ;; ** Translating org to json
 ;; - type mappings between json values and org-mode properties:
 ;;   - per default: a property value will be quoted json
@@ -258,12 +273,11 @@ Apply POSTPROCESSOR on the read value."
   (let ((priority-given (org-element-property :priority e))
 	(user-properties (org-entry-properties pom 'standard))
 	(special-properties (org-entry-properties pom 'special))
-	(field-types (org-couchdb-determine-field-types pom))
 	(json-fields ()))
     ;; return plist
     (dolist (p user-properties)
-      (if (not (member (car p) org-couchdb-ignored-properties))
-	  (push (org-couchdb-property-to-json p field-types) json-fields)))
+      (unless (member (car p) org-couchdb-ignored-properties)
+	(push (org-couchdb-property-to-json p (org-couchdb-field-type pom (car p))) json-fields)))
     json-fields))
 ;; #+END_SRC
 
@@ -272,26 +286,24 @@ Apply POSTPROCESSOR on the read value."
 ;; json values.  See [[id:3cb99f22-42e1-44eb-a175-a4a592f2082f][Field Type mappings]] for details.
 ;; #+BEGIN_SRC emacs-lisp
 (defvar org-couchdb-property-translations
-  '((string (lambda (x) (let ((val (read-from-whole-string x)))
-			  (when (not (stringp val))
-			    (error "does not evaluate to a string: %s" val))
-			  val))
-	    (lambda (x) (concat "\"" x "\""))))
-    "List of (TYPE ORG>JSON JSON>ORG) mappings.")
+  '((quoted-json (lambda (x) (let ((val (read-from-whole-string x)))
+				(when (not (stringp val))
+				  (error "Does not evaluate to a quoted string: %s" val))
+				val))
+		  (lambda (x) (concat "\"" x "\"")))
+    (string identity identity))
+  "List of (TYPE ORG>JSON JSON>ORG) mappings.")
 
-(defun org-couchdb-property-to-json (prop field-types)
-  "Convert property PROP to plist ready for JSON-encoding, using supplied list of field type definitions FIELD-TYPES."
+(defun org-couchdb-property-to-json (prop field-type)
+  "Convert property PROP to plist ready for JSON-encoding, using supplied field type FIELD-TYPE.  If FIELD-TYPE is nil, PROP will be treated as quoted json"
   (let* ((key (car prop))
 	 (org-val (cdr prop))
-	 (type (or (cdr (assoc key field-types)) 'string))
+	 (type (or field-type 'quoted-json))
 	 (translator (or (first (cdr (assoc type org-couchdb-property-translations)))
 			 (error "no translation defined for field type %s" type)))
 	 (json-val (funcall translator org-val)))
     (cons (downcase key) json-val)))
 
-(defun org-couchdb-determine-field-types (pom)
-  "Determine the list of field type mappings for the entry at POM.  Point must be at headline"
-  nil)
 ;; #+END_SRC
 ;; ** Database Commands
 ;; Interactive commands all move point to the current entry.
