@@ -105,12 +105,8 @@
 ;;   2. create a mapping from org tags to couchdb tags
 ;;      1. implicit mapping: define some clever rules (problem: one-way ticket)
 ;;      2. explicit mapping: have tag descriptions and translations
-;;         stored in the database in a special document
-;;      3. interpret anything as literal json value per default but:
-;;         - provide way to choose properties for entry headline, body,
-;;           todo state, etc
-;;         - provide way to perform mapping to/from json values and emacs
-;;           lisp types for the properties
+;;         stored in the database in a special document <- current favourite
+
 ;;; Code:
 
 
