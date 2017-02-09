@@ -396,6 +396,17 @@ Apply POSTPROCESSOR on the read value."
 ;;  This uses org-map-entries with a query (which is prompted), to map the
 ;;  check-in function over all items.
 
+;; #+BEGIN_SRC emacs-lisp
+;; HACK: uses form copied from `org-make-tags-matcher' in order to create the query
+(defun org-couchdb-store-entries (match)
+  "Map over items designated by MATCH, performing a
+   `org-couchdb-store-entry' on each."
+  (interactive (list (completing-read
+ 		      "Match: "
+ 		      'org-tags-completion-function nil nil nil 'org-tags-history)))
+  (org-map-entries 'org-couchdb-store-entry match))
+;; #+END_SRC
+
 ;;; Footer:
 ;; #+BEGIN_SRC emacs-lisp
 
