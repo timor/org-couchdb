@@ -100,7 +100,7 @@
 ;; ** Issues
 ;; - currently, interface passes pom around, may want to change that to
 ;;   (point) if usage is always the same to avoid noise
-;; - how should taq handling be performed?
+;; - how should tag handling be performed?
 ;;   1. only allow org-compatible tags in the database
 ;;   2. create a mapping from org tags to couchdb tags
 ;;      1. implicit mapping: define some clever rules (problem: one-way ticket)
