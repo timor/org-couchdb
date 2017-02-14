@@ -106,6 +106,17 @@
 ;;      1. implicit mapping: define some clever rules (problem: one-way ticket)
 ;;      2. explicit mapping: have tag descriptions and translations
 ;;         stored in the database in a special document <- current favourite
+;; *** Attachments
+;; 2 Problems:
+
+;; 1. Saving Attachments
+;; 2. Fetching Attachments
+
+;; Possible solutions:
+;; - Create special =:ATTACHMENTS:= drawer
+;; - manually walk over file links
+;; - use org's attachment facility
+
 
 ;;; Code:
 
