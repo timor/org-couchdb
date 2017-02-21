@@ -1,5 +1,7 @@
 ;;; org-couchdb.el --- map and synchronize org mode subtrees to couchdb docunments  -*- lexical-binding: t; -*-
 
+;; #+STARTUP: indent nil
+
 ;;; Header:
 
 ;; Author: timor <timor.dd@googlemail.com>
