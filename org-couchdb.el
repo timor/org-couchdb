@@ -331,7 +331,14 @@ Apply POSTPROCESSOR on the read value."
 		  (lambda (x) (concat "\"" x "\"")))
     (string identity identity))
   "List of (TYPE ORG>JSON JSON>ORG) mappings.")
+;; #+END_SRC
 
+;; To be able to connect to couchdb instances, An org item needs to be
+;; translated to JSON.  Since this is eventually done by the couchdb
+;; interface,  we only convert an item to an intermediate representation,
+;; which is a property list ready for JSON encoding.
+
+;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-property-to-json (prop field-type)
   "Convert property PROP to plist ready for JSON-encoding, using supplied field type FIELD-TYPE.  If FIELD-TYPE is nil, PROP will be treated as quoted json"
   (let* ((key (car prop))
