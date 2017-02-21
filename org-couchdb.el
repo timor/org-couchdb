@@ -152,6 +152,16 @@
 
 ;; Determine property by either getting it from subtree, buffer, or
 ;; prompt user.
+;; Compute the md5 sum of a file.  Expects the program =md5sum= to be in
+;; path.
+
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-md5sum (file)
+  "Compute md5sum of FILE.  Need program \"md5sum\" in path"
+  (if (file-exists-p file)
+      (first (split-string (shell-command-to-string (concat "md5sum " file))))
+    (error "file does not exist: %s" file)))
+;; #+END_SRC
 
 ;; ** Configuration Properties
 ;; All Configuration is done using properties, in addition to the
