@@ -171,7 +171,9 @@
     ("couchdb-org-body-field" . "content")
     ("couchdb-org-title-field" . "title")
     ("couchdb-org-deadline-field" . "deadline")
-    ("couchdb-field-type" . "")))
+    ("couchdb-field-type" . "")
+    ("couchdb-ignore-properties" . "")))
+
 ;; Determine property by either getting it from subtree, buffer, or
 ;; prompt user.
 
@@ -185,6 +187,20 @@ Apply POSTPROCESSOR on the read value."
 	(funcall postprocessor p)
       p)))
 ;; #+END_SRC
+
+;; Note that couchdb configuration properties are ignored when writing to the database
+;; #+BEGIN_SRC emacs-lisp
+;; BUG? "CATEGORY" is not in org-special-properties...
+(defvar org-couchdb-ignored-properties-builtin
+  '("CATEGORY" "COUCHDB-SERVER" "COUCHDB-PORT" "COUCHDB-DB" "COUCHDB-ID" "COUCHDB-REV"
+    "COUCHDB-ORG-TITLE-FIELD" "COUCHDB-ORG-BODY-FIELD" "COUCHDB-ORG-DEADLINE-FIELD"))
+
+(defun org-couchdb-ignored-properties (pom)
+  (mapcar 'upcase (append org-couchdb-ignored-properties-builtin
+			  (split-string (org-couchdb-get-property pom "couchdb-ignore-properties")))))
+;; #+END_SRC
+
+;; ** Connection
 
 ;; These configure the couchdb connection.  Note that no customization is
 ;; used, to specify the values, insert =#+PROPERTY: ...= lines.
@@ -289,14 +305,6 @@ Apply POSTPROCESSOR on the read value."
 ;; - deadline
 ;; - todo state
 
-;; Note that couchdb configuration properties are ignored when writing to the database
-;; #+BEGIN_SRC emacs-lisp
-;; BUG? "CATEGORY" is not in org-special-properties...
-(defvar org-couchdb-ignored-properties
-  '("CATEGORY" "COUCHDB-SERVER" "COUCHDB-PORT" "COUCHDB-DB" "COUCHDB-ID" "COUCHDB-REV"
-    "COUCHDB-ORG-TITLE-FIELD" "COUCHDB-ORG-BODY-FIELD" "COUCHDB-ORG-DEADLINE-FIELD"))
-;; #+END_SRC
-
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-item-to-json (pom e)
   "Translate an org item to a json document.  Point must be at headline."
@@ -306,7 +314,7 @@ Apply POSTPROCESSOR on the read value."
 	(json-fields ()))
     ;; return plist
     (dolist (p user-properties)
-      (unless (member (car p) org-couchdb-ignored-properties)
+      (unless (member (car p) (org-couchdb-ignored-properties pom))
 	(push (org-couchdb-property-to-json p (org-couchdb-field-type pom (car p))) json-fields)))
     json-fields))
 ;; #+END_SRC
