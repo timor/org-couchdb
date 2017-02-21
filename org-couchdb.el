@@ -377,6 +377,8 @@ Apply POSTPROCESSOR on the read value."
   will be updated accordingly."
   (interactive)
   (org-couchdb-with-entry pom
+    (let ((current-item (org-get-heading t t)))
+		       (message "Syncing: %s" current-item))
     (let* ((e (org-element-at-point))
 	   (id (org-element-property :COUCHDB-ID e))
 	   (rev (org-element-property :COUCHDB-REV e))
