@@ -118,7 +118,10 @@
 ;; - Create special =:ATTACHMENTS:= drawer
 ;; - manually walk over file links
 ;; - use org's attachment facility
-
+;; *** Bulk updates
+;; - currently, no bulk updated are performed
+;; - this should use CouchDB's native support for bulk updates
+;; - probably only makes sense once some form of caching is implemented
 
 ;;; Code:
 
