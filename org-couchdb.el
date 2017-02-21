@@ -150,8 +150,6 @@
      (buffer-substring-no-properties (point) (point-max)))))
 ;; #+END_SRC
 
-;; Determine property by either getting it from subtree, buffer, or
-;; prompt user.
 ;; Compute the md5 sum of a file.  Expects the program =md5sum= to be in
 ;; path.
 
@@ -174,6 +172,8 @@
     ("couchdb-org-title-field" . "title")
     ("couchdb-org-deadline-field" . "deadline")
     ("couchdb-field-type" . "")))
+;; Determine property by either getting it from subtree, buffer, or
+;; prompt user.
 
 (defun org-couchdb-get-property (pom name &optional postprocessor)
   "Determine org property NAME at POM, ask user if not found.
