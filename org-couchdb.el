@@ -411,6 +411,25 @@ Apply POSTPROCESSOR on the read value."
       (org-entry-put pom "COUCHDB-REV" new-rev))))
 ;; #+END_SRC
 
+;; **** Attachments
+;; Org attachments are stored as couchdb attachments.  To prevent
+;; unnecessary transfers, checksums are compared with existing
+;; attachments before uploading.
+
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-attachment-checksum (name)
+  "Return the checksum for an attachment named NAME.  Requires the program md5sum in the path."
+  (let ((file (org-attach-expand name)))
+    (org-couchdb-md5sum file)))
+
+(defun org-couchdb-map-attachments (fun)
+  "Map FUN over attachments at point."
+  (let ((dir (org-attach-dir)))
+    (when dir
+      (mapcar fun
+       (org-attach-file-list dir)))))
+
+;; #+END_SRC
 ;; *** Updating an existing Entry
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-fetch-entry ()
