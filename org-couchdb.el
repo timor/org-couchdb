@@ -25,6 +25,7 @@
 ;; - query results are tagged items, but a special tag->tree
 ;;   transformation allows to view and store items in a tree
 ;; ** Setup
+;; *** Configuration
 ;; All configuration is done via org-mode properties.  The minimum setup
 ;; to get started is:
 ;; #+BEGIN_EXAMPLE org
@@ -117,7 +118,7 @@
 ;; Possible solutions:
 ;; - Create special =:ATTACHMENTS:= drawer
 ;; - manually walk over file links
-;; - use org's attachment facility
+;; - use org's attachment facility <- current choice
 ;; *** Bulk updates
 ;; - currently, no bulk updated are performed
 ;; - this should use CouchDB's native support for bulk updates
@@ -129,6 +130,7 @@
 ;; #+BEGIN_SRC emacs-lisp
 (require 'org)
 (require 'couchdb)
+(require 'request)
 (require 'json)
 ;; #+END_SRC
 
@@ -162,6 +164,18 @@
   (if (file-exists-p file)
       (first (split-string (shell-command-to-string (concat "md5sum " file))))
     (error "file does not exist: %s" file)))
+;; #+END_SRC
+
+;; Perform a HEAD request.  This is not present in couchdb.el,
+;; unfortunately.
+
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-attachment-info (db id attachment)
+  (let* ((url (format "http://%s:%s/%s/%s/%s" (org-couchdb-server nil) (org-couchdb-port nil)
+		      db id attachment))
+	 (response
+	  (request url :type "HEAD" :sync t :timeout 5))
+	 (md5 (base64-)))))
 ;; #+END_SRC
 
 ;; ** Configuration Properties
@@ -358,6 +372,8 @@ Apply POSTPROCESSOR on the read value."
 
 ;; TODO: factor out common code of store and fetch code.
 
+;; *** Helper Macros
+
 ;; #+BEGIN_SRC emacs-lisp
 (defmacro org-couchdb-with-entry (point-var &rest body)
   "Jump to beginning of entry for BODY, with POINT-VAR bound to the current point."
@@ -367,6 +383,18 @@ Apply POSTPROCESSOR on the read value."
      (org-back-to-heading)
      (let ((,point-var (point)))
        ,@body)))
+;; #+END_SRC
+
+;; couchdb.el expects the host and port in dynamic variables.
+;; Setting these based on the current item is a recurring task.
+
+;; #+BEGIN_SRC emacs-lisp
+(defmacro org-couchdb-with-current-host (&rest body)
+  "Set the variables for couchdb.el based on the current buffer position."
+  (declare (indent 1) (debug (body)))
+  `(let ((couchdb-host (org-couchdb-server nil))
+	 (couchdb-port (org-couchdb-port nil)))
+     ,@body))
 ;; #+END_SRC
 
 ;; *** Storing an entry
@@ -400,10 +428,10 @@ Apply POSTPROCESSOR on the read value."
 	   (doc (if rev
 		    (acons "_rev" rev fields)
 		  fields))
-	   (couchdb-host (org-couchdb-server pom))
-	   (couchdb-port (org-couchdb-port pom))
-	   (response (couchdb-doc-save (org-couchdb-db pom)
-				       doc id))
+	   ;; (couchdb-host (org-couchdb-server pom))
+	   ;; (couchdb-port (org-couchdb-port pom))
+	   (response (org-couchdb-with-current-host
+			 (couchdb-doc-save (org-couchdb-db pom) doc id)))
 	   (new-id (cdr (assoc 'id response)))
 	   (new-rev (cdr (assoc 'rev response))))
       (unless (eq (cdr (assoc 'ok response)) t)
@@ -414,7 +442,29 @@ Apply POSTPROCESSOR on the read value."
       (org-entry-put pom "COUCHDB-REV" new-rev))))
 ;; #+END_SRC
 
-;; **** Attachments
+;; *** TODO Updating an existing Entry
+;; #+BEGIN_SRC emacs-lisp
+
+(defun org-couchdb-fetch-entry ()
+  "If entry has valid id, query that from the server and update the entry."
+  (interactive)
+  (org-couchdb-with-entry pom
+    (let* ((e (org-element-at-point))
+	   (id (or (org-element-property :COUCHDB-ID e)
+		   (error "Item does not have COUCHDB-ID property, cannot fetch from server.")))
+	   ;; (couchdb-host (org-couchdb-server pom))
+	   ;; (couchdb-port (org-couchdb-port pom))
+	   (response (org-couchdb-with-current-host
+			 (couchdb-doc-info (org-couchdb-db pom) id)))
+	   (db-error (cdr (assoc 'error response)))
+	   (new-id (cdr (assoc '_id response)))
+	   (new-rev (cdr (assoc '_rev response))))
+      (when db-error
+	(error "CouchDB request error, Reason: %s" (cdr (assoc 'reason response))))
+      (when (and id (not (equal id new-id)))
+	(error "Server document ID differs from previously known ID")))))
+;; #+END_SRC
+;; *** Attachments
 ;; Org attachments are stored as couchdb attachments.  To prevent
 ;; unnecessary transfers, checksums are compared with existing
 ;; attachments before uploading.
@@ -432,29 +482,14 @@ Apply POSTPROCESSOR on the read value."
       (mapcar fun
        (org-attach-file-list dir)))))
 
-;; #+END_SRC
-;; *** Updating an existing Entry
-;; #+BEGIN_SRC emacs-lisp
-(defun org-couchdb-fetch-entry ()
-  "If entry has valid id, query that from the server and update the entry."
-  (interactive)
-  (org-couchdb-with-entry pom
-    (let* ((e (org-element-at-point))
-	   (id (or (org-element-property :COUCHDB-ID e)
-		   (error "Item does not have COUCHDB-ID property, cannot fetch from server.")))
-	   (couchdb-host (org-couchdb-server pom))
-	   (couchdb-port (org-couchdb-port pom))
-	   (response (couchdb-doc-info (org-couchdb-db pom) id))
-	   (db-error (cdr (assoc 'error response)))
-	   (new-id (cdr (assoc '_id response)))
-	   (new-rev (cdr (assoc '_rev response))))
-      (when db-error
-	(error "CouchDB request error, Reason: %s" (cdr (assoc 'reason response))))
-      (when (and id (not (equal id new-id)))
-	(error "Server document ID differs from previously known ID")))))
+(defun org-couchdb-check-attachment (file)
+  (let ((id (org-entry-get nil "COUCHDB-ID")))
+    (when id
+      (let ((response (org-couchdb-att)))))))
 
 ;; #+END_SRC
-;; *** Bulk Processing
+
+;; *** TODO Bulk Processing
 ;;  This section deals with commands that process more than one item.
 ;;  Currently, following functionality is to be supported:
 ;;  1. Checking in all items in a buffer based on a org-mode tag/property query
@@ -467,7 +502,7 @@ Apply POSTPROCESSOR on the read value."
 
 ;; #+BEGIN_SRC emacs-lisp
 ;; HACK: uses form copied from `org-make-tags-matcher' in order to create the query
-(defun org-couchdb-store-entries (match)
+(defun org-couchdb-store-all-entries (match)
   "Map over items designated by MATCH, performing a
    `org-couchdb-store-entry' on each."
   (interactive (list (completing-read
