@@ -513,6 +513,8 @@ database DB.  Returns nil if the server responds with an error."
 ;; #+END_SRC
 
 
+;; Determine the checksum of the local file.  This is needed to see if it
+;; is necessary to perform any transfers.
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-attachment-local-checksum (name)
   "Return the checksum for an attachment named NAME.  Requires
@@ -521,14 +523,25 @@ return nil."
   (let ((file (org-attach-expand name)))
     (when (file-exists-p file)
      (org-couchdb-md5sum file))))
+;; #+END_SRC
 
-(defun org-couchdb-map-attachments (fun)
-  "Map FUN over attachments at point."
+;; Iterate over all local attachment names.
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-map-local-attachments (fun)
+  "Map FUN over org attachments at point."
   (let ((dir (org-attach-dir)))
     (when dir
       (mapcar fun
        (org-attach-file-list dir)))))
 
+
+;; #+END_SRC
+
+
+;; Comparison operation of attachment.  Used to determine which side
+;; (local or remote) is present, and wether the checksums match.  Checks
+;; the server for the corresponding attachment.
+;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-check-attachment (attname)
   "Test if local attachment of entry at point is present on server and uptodate.  Returns:
 
