@@ -426,9 +426,11 @@ Apply POSTPROCESSOR on the read value."
 ;; - look for =:couchdb-id:= property
 ;;   - if found, update entry from server document
 
-;; (defun org-couchdb-update-rev (new-rev)
-;;   "Change the couchdb rev of item at point to NEW-REV."
-;;   (org-entry-put pom "COUCHDB-REV" new-rev))
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-update-rev (new-rev)
+  "Change the couchdb rev of item at point to NEW-REV."
+  (org-entry-put nil "COUCHDB-REV" new-rev))
+;; #+END_SRC
 
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-store-entry (&optional skip-attachments)
