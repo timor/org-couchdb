@@ -539,11 +539,8 @@ return nil."
   (let ((dir (org-attach-dir)))
     (when dir
       (mapcar fun
-       (org-attach-file-list dir)))))
-
-
+	      (org-attach-file-list dir)))))
 ;; #+END_SRC
-
 
 ;; Comparison operation of attachment.  Used to determine which side
 ;; (local or remote) is present, and wether the checksums match.  Checks
@@ -574,7 +571,20 @@ return nil."
 			     (throw 'result :local)))
 		(t (throw 'result :missing)))))
       (error "could not determine couchdb id"))))
+;; #+END_SRC
 
+;; To store attachments, first see if they need updating, then perform a corresponding put request.
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-upload-attachments ()
+  (let ((id (org-entry-get nil "COUCHDB-ID"))
+	(rev (org-entry-get nil "COUCHDB-REV")))
+    (org-couchdb-map-local-attachments (lambda (name)
+					 (let ((status (org-couchdb-check-attachment name)))
+					   (case status
+					     (:missing (message "skipping non-existent attachment: %s" name))
+					     ((:local :mismatch)
+					      (let ((url))))))))
+    ))
 ;; #+END_SRC
 
 ;; *** TODO Bulk Processing
