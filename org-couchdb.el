@@ -597,8 +597,9 @@ return nil."
 					    (plist-get (org-couchdb-attachment-info db id name)
 						       :content-type)))))
 	      (if (assoc 'ok response)
-		  (progn
-		    (org-couchdb-update-rev (cdr (assoc 'rev response)))
+		  (let ((new-rev (cdr (assoc 'rev response))))
+		    (setq rev new-rev)
+		    (org-couchdb-update-rev new-rev)
 		    :uploaded)
 		(error "CouchDB request error, Reason: %s" (cdr (assoc 'reason response))))))
 	   (t status)))))))
