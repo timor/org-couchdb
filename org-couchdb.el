@@ -470,8 +470,8 @@ Apply POSTPROCESSOR on the read value."
 ;; *** TODO Updating an existing Entry
 ;; #+BEGIN_SRC emacs-lisp
 
-(defun org-couchdb-fetch-entry ()
-  "If entry has valid id, query that from the server and update the entry."
+(defun org-couchdb-fetch-entry (&optional fetch-attachments)
+  "If entry has valid id, query that from the server and update the entry.  If FETCH-ATTACHMENTS is non-nil, also download all attachments."
   (interactive)
   (org-couchdb-with-entry pom
     (let* ((e (org-element-at-point))
