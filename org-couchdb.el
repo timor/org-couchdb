@@ -185,6 +185,18 @@
   (request url :type "HEAD" :sync t :timeout org-couchdb-request-timeout))
 ;; #+END_SRC
 
+;; #+BEGIN_SRC emacs-lisp
+;; Perform a PUT request with a file as data
+(defun org-couchdb-put-file (url file &optional content-type)
+  "Perform synchronous put request to URL, sending FILE.  Returns request-response object.  Uses curl."
+  (let ((cmd (string-join (list "curl" "-s" "-X PUT"
+				url (concat "--data-binary @" file)
+				(when content-type
+				  (concat "-H \"Content-Type:" content-type "\""))) " ")))
+    (message "executing: %s" cmd)
+    (json-read-from-string (shell-command-to-string cmd))))
+;; #+END_SRC
+
 ;; ** Configuration Properties
 ;; All Configuration is done using properties, in addition to the
 ;; variable =org-couchdb-property-defaults=.
