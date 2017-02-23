@@ -492,6 +492,14 @@ Apply POSTPROCESSOR on the read value."
 ;; unnecessary transfers, checksums are compared with existing
 ;; attachments before uploading.
 
+;; Construct a url to an items attachment
+
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-attachment-url (db id attachment)
+  "Return url to attachment."
+  (format "http://%s:%s/%s/%s/%s" (org-couchdb-server nil) (org-couchdb-port nil)
+		      db id (url-hexify-string attachment)))
+;; #+END_SRC
 
 ;; Collect info about an attachment on the server.
 
@@ -499,8 +507,7 @@ Apply POSTPROCESSOR on the read value."
 (defun org-couchdb-attachment-info (db id attachment)
   "Return a plist of information about ATTACHMENT of doc ID in
 database DB.  Returns nil if the server responds with an error."
-  (let* ((url (format "http://%s:%s/%s/%s/%s" (org-couchdb-server nil) (org-couchdb-port nil)
-		      db id (url-hexify-string attachment)))
+  (let* ((url (org-couchdb-attachment-url db id attachment))
 	 (response (org-couchdb-head-request url)))
     (unless (>= (request-response-status-code response) 400)
       (let* ((digest (request-response-header response "Content-MD5"))
