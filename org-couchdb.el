@@ -431,7 +431,7 @@ Apply POSTPROCESSOR on the read value."
 ;;   (org-entry-put pom "COUCHDB-REV" new-rev))
 
 ;; #+BEGIN_SRC emacs-lisp
-(defun org-couchdb-store-entry ()
+(defun org-couchdb-store-entry (&optional skip-attachments)
   "Based on the :couchdb-id: property, post the current entry to couchdb.
   All Properties will be passed as json fields, except for the
   ones where translations have been defined.  The body of the
