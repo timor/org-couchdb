@@ -134,6 +134,11 @@
 (require 'json)
 ;; #+END_SRC
 
+;; ** Variables
+;; #+BEGIN_SRC emacs-lisp
+(defvar org-couchdb-request-timeout 5
+  "Timeout in seconds for synchronous requests made with request.el")
+;; #+END_SRC
 ;; ** Helpers
 
 ;; Get the content of an entry, without the property drawer, as raw text
@@ -166,8 +171,12 @@
     (error "file does not exist: %s" file)))
 ;; #+END_SRC
 
-;; Perform a HEAD request.  This is not present in couchdb.el,
-;; unfortunately.
+
+;; *** HTTP Requests
+;; HTTP access requests.  Implement those here that are not provided by
+;; couchdb.el.  Might switch to request.el for all of them eventually.
+
+;; Perform a HEAD request.
 
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-attachment-info (db id attachment)
@@ -176,6 +185,9 @@
 	 (response
 	  (request url :type "HEAD" :sync t :timeout 5))
 	 (md5 (base64-)))))
+(defun org-couchdb-head-request (url)
+  "Perform synchronous head request.  Returns request-response object."
+  (request url :type "HEAD" :sync t :timeout org-couchdb-request-timeout))
 ;; #+END_SRC
 
 ;; ** Configuration Properties
