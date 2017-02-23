@@ -102,7 +102,9 @@
 
 ;; ** Issues
 ;; - currently, interface passes pom around, may want to change that to
-;;   (point) if usage is always the same to avoid noise
+;;   (point) if usage is always the same to avoid noise -> will kick
+;;   that, all operations assume point to be correct, which is performed
+;;   by the interactive commands
 ;; - how should tag handling be performed?
 ;;   1. only allow org-compatible tags in the database
 ;;   2. create a mapping from org tags to couchdb tags
