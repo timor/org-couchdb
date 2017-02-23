@@ -412,6 +412,10 @@ Apply POSTPROCESSOR on the read value."
 ;; - look for =:couchdb-id:= property
 ;;   - if found, update entry from server document
 
+;; (defun org-couchdb-update-rev (new-rev)
+;;   "Change the couchdb rev of item at point to NEW-REV."
+;;   (org-entry-put pom "COUCHDB-REV" new-rev))
+
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-store-entry ()
   "Based on the :couchdb-id: property, post the current entry to couchdb.
@@ -446,7 +450,7 @@ Apply POSTPROCESSOR on the read value."
       (when (and id (not (equal id new-id)))
 	(error "Server document ID differs from previously known ID"))
       (org-entry-put pom "COUCHDB-ID" new-id)
-      (org-entry-put pom "COUCHDB-REV" new-rev))))
+      (org-couchdb-update-rev new-rev))))
 ;; #+END_SRC
 
 ;; *** TODO Updating an existing Entry
