@@ -579,14 +579,27 @@ return nil."
 ;; #+BEGIN_SRC emacs-lisp
 (defun org-couchdb-upload-attachments ()
   (let ((id (org-entry-get nil "COUCHDB-ID"))
-	(rev (org-entry-get nil "COUCHDB-REV")))
-    (org-couchdb-map-local-attachments (lambda (name)
-					 (let ((status (org-couchdb-check-attachment name)))
-					   (case status
-					     (:missing (message "skipping non-existent attachment: %s" name))
-					     ((:local :mismatch)
-					      (let ((url))))))))
-    ))
+	(rev (org-entry-get nil "COUCHDB-REV"))
+	(db (org-couchdb-db nil)))
+    (org-couchdb-map-local-attachments
+     (lambda (name)
+       (let ((status (org-couchdb-check-attachment name)))
+	 (case status
+	   (:missing (message "skipping non-existent attachment: %s" name) :missing)
+	   ((:local :mismatch)
+	    (let* ((url (concat (org-couchdb-attachment-url db id name)
+				"&rev=" rev))
+		   (response
+		    (org-couchdb-put-file url (org-attach-expand name)
+					  (when (eq status :mismatch)
+					    (plist-get (org-couchdb-attachment-info db id name)
+						       :content-type)))))
+	      (if (assoc 'ok response)
+		  (progn
+		    (org-couchdb-update-rev (cdr (assoc 'rev response)))
+		    :uploaded)
+		(error "CouchDB request error, Reason: %s" (cdr (assoc 'reason response))))))
+	   (t status)))))))
 ;; #+END_SRC
 
 ;; *** TODO Bulk Processing
