@@ -503,11 +503,13 @@ database DB.  Returns nil if the server responds with an error."
 		      db id (url-hexify-string attachment)))
 	 (response (org-couchdb-head-request url)))
     (unless (>= (request-response-status-code response) 400)
-      (let ((digest (request-response-header response "Content-MD5"))
-	    (md5sum (loop for c across (base64-decode-string digest) concat (format "%2x" c)))
-	    (encoding (request-response-header response "Content-Encoding"))
-	    (length (string-to-number (request-response-header response "Content-Length"))))
-	(list :md5sum md5sum :encoding encoding :length length)))))
+      (let* ((digest (request-response-header response "Content-MD5"))
+	     (md5sum (loop for c across (base64-decode-string digest) concat (format "%02x" c)))
+	     (encoding (request-response-header response "Content-Encoding"))
+	     (length (string-to-number (request-response-header response "Content-Length")))
+	     ;; NOTE: undocumented???
+	     (content-type (request-response-header response "Content-Type")))
+	(list :md5sum md5sum :encoding encoding :length length :content-type content-type)))))
 ;; #+END_SRC
 
 
