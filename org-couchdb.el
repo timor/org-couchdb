@@ -129,6 +129,7 @@
 
 ;; #+BEGIN_SRC emacs-lisp
 (require 'org)
+(require 'org-attach)
 (require 'couchdb)
 (require 'request)
 (require 'json)
@@ -179,12 +180,6 @@
 ;; Perform a HEAD request.
 
 ;; #+BEGIN_SRC emacs-lisp
-(defun org-couchdb-attachment-info (db id attachment)
-  (let* ((url (format "http://%s:%s/%s/%s/%s" (org-couchdb-server nil) (org-couchdb-port nil)
-		      db id attachment))
-	 (response
-	  (request url :type "HEAD" :sync t :timeout 5))
-	 (md5 (base64-)))))
 (defun org-couchdb-head-request (url)
   "Perform synchronous head request.  Returns request-response object."
   (request url :type "HEAD" :sync t :timeout org-couchdb-request-timeout))
@@ -222,7 +217,7 @@ Apply POSTPROCESSOR on the read value."
 ;; BUG? "CATEGORY" is not in org-special-properties...
 (defvar org-couchdb-ignored-properties-builtin
   '("CATEGORY" "COUCHDB-SERVER" "COUCHDB-PORT" "COUCHDB-DB" "COUCHDB-ID" "COUCHDB-REV"
-    "COUCHDB-ORG-TITLE-FIELD" "COUCHDB-ORG-BODY-FIELD" "COUCHDB-ORG-DEADLINE-FIELD"))
+    "COUCHDB-ORG-TITLE-FIELD" "COUCHDB-ORG-BODY-FIELD" "COUCHDB-ORG-DEADLINE-FIELD" "ATTACHMENTS"))
 
 (defun org-couchdb-ignored-properties (pom)
   (mapcar 'upcase (append org-couchdb-ignored-properties-builtin
@@ -481,11 +476,33 @@ Apply POSTPROCESSOR on the read value."
 ;; unnecessary transfers, checksums are compared with existing
 ;; attachments before uploading.
 
+
+;; Collect info about an attachment on the server.
+
 ;; #+BEGIN_SRC emacs-lisp
-(defun org-couchdb-attachment-checksum (name)
-  "Return the checksum for an attachment named NAME.  Requires the program md5sum in the path."
+(defun org-couchdb-attachment-info (db id attachment)
+  "Return a plist of information about ATTACHMENT of doc ID in
+database DB.  Returns nil if the server responds with an error."
+  (let* ((url (format "http://%s:%s/%s/%s/%s" (org-couchdb-server nil) (org-couchdb-port nil)
+		      db id (url-hexify-string attachment)))
+	 (response (org-couchdb-head-request url)))
+    (unless (>= (request-response-status-code response) 400)
+      (let ((digest (request-response-header response "Content-MD5"))
+	    (md5sum (loop for c across (base64-decode-string digest) concat (format "%2x" c)))
+	    (encoding (request-response-header response "Content-Encoding"))
+	    (length (string-to-number (request-response-header response "Content-Length"))))
+	(list :md5sum md5sum :encoding encoding :length length)))))
+;; #+END_SRC
+
+
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-attachment-local-checksum (name)
+  "Return the checksum for an attachment named NAME.  Requires
+the program md5sum in the path.  If the file cannot be found,
+return nil."
   (let ((file (org-attach-expand name)))
-    (org-couchdb-md5sum file)))
+    (when (file-exists-p file)
+     (org-couchdb-md5sum file))))
 
 (defun org-couchdb-map-attachments (fun)
   "Map FUN over attachments at point."
@@ -494,10 +511,30 @@ Apply POSTPROCESSOR on the read value."
       (mapcar fun
        (org-attach-file-list dir)))))
 
-(defun org-couchdb-check-attachment (file)
+(defun org-couchdb-check-attachment (attname)
+  "Test if local attachment of entry at point is present on server and uptodate.  Returns:
+
+:local if the attachment is present only locally and not on the server
+:remote if the attachment is present only on the server and not locally
+:missing if the attachment is neither present locally nor on the server
+:up-to-date if the attachment is present upstream and locally and the checksums match
+:out-of-date if the attachment is present upstream and locally but the checksums don't match"
   (let ((id (org-entry-get nil "COUCHDB-ID")))
-    (when id
-      (let ((response (org-couchdb-att)))))))
+    (if id
+      (catch 'result
+	(let* ((info (or (org-couchdb-attachment-info (org-couchdb-db nil) id attname)))
+	       (upstream-md5 (plist-get info :md5sum))
+	       (local-md5 (org-couchdb-attachment-local-checksum attname)))
+	  (cond (upstream-md5 (if local-md5
+				  (if (string-equal local-md5 upstream-md5) (throw 'result :up-to-date)
+				    (throw 'result :out-of-date))
+				(throw 'result :remote)))
+		(local-md5 (if upstream-md5
+			       (if (string-equal local-md5 upstream-md5) (throw 'result :up-to-date)
+				 (throw 'result :out-of-date))
+			     (throw 'result :local)))
+		(t (throw 'result :missing)))))
+      (error "could not determine couchdb id"))))
 
 ;; #+END_SRC
 
