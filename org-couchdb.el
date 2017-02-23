@@ -590,7 +590,7 @@ return nil."
 	   (:missing (message "skipping non-existent attachment: %s" name) :missing)
 	   ((:local :mismatch)
 	    (let* ((url (concat (org-couchdb-attachment-url db id name)
-				"&rev=" rev))
+				"?rev=" rev))
 		   (response
 		    (org-couchdb-put-file url (org-attach-expand name)
 					  (when (eq status :mismatch)
