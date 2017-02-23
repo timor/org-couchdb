@@ -548,21 +548,22 @@ return nil."
 :local if the attachment is present only locally and not on the server
 :remote if the attachment is present only on the server and not locally
 :missing if the attachment is neither present locally nor on the server
-:up-to-date if the attachment is present upstream and locally and the checksums match
-:out-of-date if the attachment is present upstream and locally but the checksums don't match"
+:match if the attachment is present remote and locally and the checksums match
+:mismatch if the attachment is present remote and locally but the checksums don't match"
   (let ((id (org-entry-get nil "COUCHDB-ID")))
     (if id
       (catch 'result
 	(let* ((info (or (org-couchdb-attachment-info (org-couchdb-db nil) id attname)))
-	       (upstream-md5 (plist-get info :md5sum))
+	       (remote-md5 (plist-get info :md5sum))
 	       (local-md5 (org-couchdb-attachment-local-checksum attname)))
-	  (cond (upstream-md5 (if local-md5
-				  (if (string-equal local-md5 upstream-md5) (throw 'result :up-to-date)
-				    (throw 'result :out-of-date))
+	  ;; (message "debug: local-md5: %s remote-md5 %s" local-md5 remote-md5)
+	  (cond (remote-md5 (if local-md5
+				  (if (string-equal local-md5 remote-md5) (throw 'result :match)
+				    (throw 'result :mismatch))
 				(throw 'result :remote)))
-		(local-md5 (if upstream-md5
-			       (if (string-equal local-md5 upstream-md5) (throw 'result :up-to-date)
-				 (throw 'result :out-of-date))
+		(local-md5 (if remote-md5
+			       (if (string-equal local-md5 remote-md5) (throw 'result :match)
+				 (throw 'result :mismatch))
 			     (throw 'result :local)))
 		(t (throw 'result :missing)))))
       (error "could not determine couchdb id"))))
