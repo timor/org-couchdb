@@ -194,7 +194,7 @@
   (let ((cmd (string-join (list "curl" "-s" "-X PUT"
 				url (concat "--data-binary @" file)
 				(when content-type
-				  (concat "-H \"Content-Type:" content-type "\""))) " ")))
+				  (concat "-H \"Content-Type: " content-type "\""))) " ")))
     (message "executing: %s" cmd)
     (json-read-from-string (shell-command-to-string cmd))))
 ;; #+END_SRC
