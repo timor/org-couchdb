@@ -455,8 +455,6 @@ Apply POSTPROCESSOR on the read value."
 	   (doc (if rev
 		    (acons "_rev" rev fields)
 		  fields))
-	   ;; (couchdb-host (org-couchdb-server pom))
-	   ;; (couchdb-port (org-couchdb-port pom))
 	   (response (org-couchdb-with-current-host
 			 (couchdb-doc-save (org-couchdb-db pom) doc id)))
 	   (new-id (cdr (assoc 'id response)))
