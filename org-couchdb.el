@@ -466,7 +466,9 @@ Apply POSTPROCESSOR on the read value."
       (when (and id (not (equal id new-id)))
 	(error "Server document ID differs from previously known ID"))
       (org-entry-put pom "COUCHDB-ID" new-id)
-      (org-couchdb-update-rev new-rev))))
+      (org-couchdb-update-rev new-rev)
+      (unless skip-attachments
+	(org-couchdb-upload-attachments)))))
 ;; #+END_SRC
 
 ;; *** TODO Updating an existing Entry
