@@ -199,6 +199,16 @@
     (json-read-from-string (shell-command-to-string cmd))))
 ;; #+END_SRC
 
+;; ** Editing Behavior
+;; To avoid repeatedly checking in unmodified items, a way is needed to
+;; keep track of what has changed.  This is achieved by making an
+;; after-change-hook that sets a "modified" property on a tracked
+;; subtree.  Storing an entry will then reset this property.
+
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-maybe-set-edited)
+;; #+END_SRC
+
 ;; ** Configuration Properties
 ;; All Configuration is done using properties, in addition to the
 ;; variable =org-couchdb-property-defaults=.
