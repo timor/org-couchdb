@@ -406,14 +406,13 @@ Apply POSTPROCESSOR on the read value."
 ;; *** Helper Macros
 
 ;; #+BEGIN_SRC emacs-lisp
-(defmacro org-couchdb-with-entry (point-var &rest body)
-  "Jump to beginning of entry for BODY, with POINT-VAR bound to the current point."
+(defmacro org-couchdb-at-entry (&rest body)
+  "Set point to beginning of entry during the execution of BODY."
   (declare (indent 1)
 	   (debug (sexp body)))
   `(save-excursion
      (org-back-to-heading)
-     (let ((,point-var (point)))
-       ,@body)))
+     ,@body))
 ;; #+END_SRC
 
 ;; couchdb.el expects the host and port in dynamic variables.
@@ -451,7 +450,7 @@ Apply POSTPROCESSOR on the read value."
   there is no :couchdb-id:, one will be created, and the property
   will be updated accordingly."
   (interactive)
-  (org-couchdb-with-entry pom
+  (org-couchdb-at-entry
     (let ((current-item (org-get-heading t t)))
 		       (message "Syncing: %s" current-item))
     (let* ((e (org-element-at-point))
@@ -459,21 +458,21 @@ Apply POSTPROCESSOR on the read value."
 	   (rev (org-element-property :COUCHDB-REV e))
 	   (body (org-couchdb-get-body e))
 	   (title (org-element-property :title e))
-	   (generated-fields (list (cons (org-couchdb-get-property pom "couchdb-org-body-field") body)
-				   (cons (org-couchdb-get-property pom "couchdb-org-title-field") title)))
-	   (fields (append generated-fields (org-couchdb-item-to-json pom e)))
+	   (generated-fields (list (cons (org-couchdb-get-property nil "couchdb-org-body-field") body)
+				   (cons (org-couchdb-get-property nil "couchdb-org-title-field") title)))
+	   (fields (append generated-fields (org-couchdb-item-to-json nil e)))
 	   (doc (if rev
 		    (acons "_rev" rev fields)
 		  fields))
 	   (response (org-couchdb-with-current-host
-			 (couchdb-doc-save (org-couchdb-db pom) doc id)))
+			 (couchdb-doc-save (org-couchdb-db nil) doc id)))
 	   (new-id (cdr (assoc 'id response)))
 	   (new-rev (cdr (assoc 'rev response))))
       (unless (eq (cdr (assoc 'ok response)) t)
 	(error "CouchDB request error, Reason: %s" (cdr (assoc 'reason response))))
       (when (and id (not (equal id new-id)))
 	(error "Server document ID differs from previously known ID"))
-      (org-entry-put pom "COUCHDB-ID" new-id)
+      (org-entry-put nil "COUCHDB-ID" new-id)
       (org-couchdb-update-rev new-rev)
       (unless skip-attachments
 	(org-couchdb-upload-attachments)))))
@@ -485,12 +484,10 @@ Apply POSTPROCESSOR on the read value."
 (defun org-couchdb-fetch-entry (&optional fetch-attachments)
   "If entry has valid id, query that from the server and update the entry.  If FETCH-ATTACHMENTS is non-nil, also download all attachments."
   (interactive)
-  (org-couchdb-with-entry pom
+  (org-couchdb-at-entry
     (let* ((e (org-element-at-point))
 	   (id (or (org-element-property :COUCHDB-ID e)
 		   (error "Item does not have COUCHDB-ID property, cannot fetch from server.")))
-	   ;; (couchdb-host (org-couchdb-server pom))
-	   ;; (couchdb-port (org-couchdb-port pom))
 	   (response (org-couchdb-with-current-host
 			 (couchdb-doc-info (org-couchdb-db pom) id)))
 	   (db-error (cdr (assoc 'error response)))
