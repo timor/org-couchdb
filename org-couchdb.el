@@ -44,11 +44,15 @@
 ;; org-element, and then performing all extraction operations on the
 ;; already parsed tree.  This should be faster for full-buffer
 ;; synchronizations, but may incur unneccesary parsing overhead.
-;; *** Updating unchanged Items
+;; *** Updating Items
 ;; At the moment, when an item is submitted to CouchDB, all properties
 ;; are updated, regardless of change status.  Introducing checksums could
 ;; be introduced to only synchronize when necessary.  This must be
 ;; weighed against the overhead of actually checking for up-to-date-ness.
+
+;; It is probably valid to perform a download-compare-upload before
+;; checking in an item in most cases.  This should be chosen by the user
+;; though.
 ;; *** Nested Items
 ;; There is no special handling of nested items.  For an outer item, the
 ;; whole subtree is stored as org-body.  This is true for the inner item,
@@ -503,6 +507,12 @@ from the server.  Returns a plist repesenting the parsed json."
 ;; #+END_SRC
 
 ;; *** TODO Updating an existing Entry
+;; To see if an entry is out-of-date compared to upstream, a get request
+;; is used to fetch the document, and compare the latest known revision.
+;; Note that this also performs a content comparison.  Comparing content
+;; amounts to a comparison of all json fields.  Note that for that, the
+;; item must be translated into json first.
+
 ;; #+BEGIN_SRC emacs-lisp
 
 (defun org-couchdb-fetch-entry (&optional fetch-attachments)
