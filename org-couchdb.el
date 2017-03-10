@@ -427,6 +427,30 @@ Apply POSTPROCESSOR on the read value."
      ,@body))
 ;; #+END_SRC
 
+;; *** Low Level Commands
+
+;; Retrieving the document for the entry at point works by checking for a
+;; valid =COUCHDB-ID= property, and performing the http request.  Basic
+;; error checking is performed here.
+
+;; #+BEGIN_SRC emacs-lisp
+(defun org-couchdb-retrieve-doc ()
+  "If entry has valid id, retrieve the corresponding document
+from the server.  Returns a plist repesenting the parsed json."
+  (org-couchdb-at-entry
+    (let* ((e (org-element-at-point))
+	   (id (or (org-element-property :COUCHDB-ID e)
+		   (error "Item does not have COUCHDB-ID property, cannot fetch from server.")))
+	   (response (org-couchdb-with-current-host
+			 (couchdb-doc-info (org-couchdb-db nil) id)))
+	   (db-error (cdr (assoc 'error response)))
+	   (new-id (cdr (assoc '_id response))))
+      (when db-error
+	(error "CouchDB request error, Reason: %s" (cdr (assoc 'reason response))))
+      (when (and id (not (equal id new-id)))
+	(error "Server document ID differs from previously known ID"))
+      response)))
+;; #+END_SRC
 ;; *** Storing an entry
 ;; - look for =:couchdb-id:= property
 ;;   - if found, translate and update server document
