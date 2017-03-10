@@ -341,7 +341,7 @@ Apply POSTPROCESSOR on the read value."
 	    (return (intern type))))))
 ;; #+END_SRC
 
-;; ** Translating org to json
+;; ** TODO Translating org to json
 ;; - type mappings between json values and org-mode properties:
 ;;   - per default: a property value will be quoted json
 ;;   - if you define field types, conversion to and from json values to
@@ -514,6 +514,13 @@ from the server.  Returns a plist repesenting the parsed json."
 ;; item must be translated into json first.
 
 ;; #+BEGIN_SRC emacs-lisp
+
+;;; TODO: decide wether to include special properties here
+(defun org-couchdb-check-entry ()
+    "See if item upstream has changed"
+  (let ((doc (org-couchdb-retrieve-doc))
+	(entry (org-couchdb-item-to-json nil (org-element-at-point))))
+    (equal doc entry)))
 
 (defun org-couchdb-fetch-entry (&optional fetch-attachments)
   "If entry has valid id, query that from the server and update the entry.  If FETCH-ATTACHMENTS is non-nil, also download all attachments."
