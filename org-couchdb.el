@@ -539,7 +539,11 @@ from the server.  Returns a plist repesenting the parsed json."
       (when db-error
 	(error "CouchDB request error, Reason: %s" (cdr (assoc 'reason response))))
       (when (and id (not (equal id new-id)))
-	(error "Server document ID differs from previously known ID")))))
+	(error "Server document ID differs from previously known ID"))
+      (when fetch-attachments
+	(org-couchdb-map-attachments (lambda (name)
+				       (unless (org-couchdb-check-attachment name)
+					 ())))))))
 ;; #+END_SRC
 ;; *** Attachments
 ;; Org attachments are stored as couchdb attachments.  To prevent
