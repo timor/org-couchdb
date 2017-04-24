@@ -433,6 +433,7 @@ Apply POSTPROCESSOR on the read value."
 
 ;; *** Low Level Commands
 
+;; **** Retrieve an entry
 ;; Retrieving the document for the entry at point works by checking for a
 ;; valid =COUCHDB-ID= property, and performing the http request.  Basic
 ;; error checking is performed here.
@@ -455,6 +456,7 @@ from the server.  Returns a plist repesenting the parsed json."
 	(error "Server document ID differs from previously known ID"))
       response)))
 ;; #+END_SRC
+
 ;; *** Storing an entry
 ;; - look for =:couchdb-id:= property
 ;;   - if found, translate and update server document
